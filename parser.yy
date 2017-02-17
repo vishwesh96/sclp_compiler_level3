@@ -28,7 +28,7 @@
 %token <string_value> NAME
 %token INTEGER FLOAT
 %token ASSIGN VOID
-%token IF ELSE 
+%token IF 
 %token WHILE DO 
 //%token RETURN
 
@@ -42,6 +42,9 @@
 %left '*' '/'
 %right UMINUS
 %nonassoc '('
+%nonassoc THEN
+%nonassoc ELSE
+
 
 %type <symbol_table> optional_variable_declaration_list
 %type <symbol_table> variable_declaration_list
@@ -58,9 +61,7 @@
 %type <ast> arith_expression
 %type <ast> operand
 %type <ast> statement
-%type <ast> other_statement
-%type <ast> matched_statement
-%type <ast> unmatched_statement
+%type <ast> selection_statement
 %type <ast> iterative_statement
 %type <ast> boolean_expression
 %type <ast> relational_expression
@@ -421,7 +422,16 @@ statement_list:
 	}
 ;
 
-other_statement:
+
+statement :
+	selection_statement
+	{
+	if(NOT_ONLY_PARSE)
+	{
+		$$ = $1;
+	}
+	}
+|	
 	assignment_statement
 	{
 	if(NOT_ONLY_PARSE)
@@ -449,33 +459,14 @@ other_statement:
 	}
 ;
 
-statement:
-	matched_statement 
-	{
-	if(NOT_ONLY_PARSE)
-	{
-		$$ = $1;
-	}
-	}
-|
-	unmatched_statement
-	{
-	if(NOT_ONLY_PARSE)
-	{
-		// std::cout<<"unmatched statement"<<endl;
-		$$ = $1;
-	}
-	}
-;	
-
-matched_statement:
-	IF  '(' boolean_expression ')' matched_statement ELSE matched_statement
+selection_statement:
+	IF  '(' boolean_expression ')' THEN statement %prec THEN
 	{
 	if(NOT_ONLY_PARSE)		
 	{
 		Ast * cond = $3;
-		Ast * then_part = $5;
-		Ast * else_part = $7;
+		Ast * then_part = $6;
+		Ast * else_part = new Sequence_Ast(get_line_number()); 
 		CHECK_INVARIANT((then_part!= NULL), "The then_part  cannot be null"); 	//TODO
 		CHECK_INVARIANT((else_part!= NULL), "The else_part  cannot be null"); 	//TODO		
 		Ast * selection_ast = new Selection_Statement_Ast(cond,then_part,else_part,get_line_number());
@@ -484,71 +475,121 @@ matched_statement:
 	}
 
 |	
-	other_statement
-	{
-	if(NOT_ONLY_PARSE)
-	{
-		$$ =$1;
-	}
-	}
-;
-
-unmatched_statement:
-	IF  '(' boolean_expression ')' statement
-	{
-	if(NOT_ONLY_PARSE)		
-	{
-		// std::cout<<"in unmatched statement"<<endl;
-		Ast * cond = $3;
-		Ast * then_part = $5;
-		Ast * else_part = new Sequence_Ast(get_line_number()); 
-		CHECK_INVARIANT((then_part!= NULL), "The then_part  cannot be null"); 	//TODO
-		CHECK_INVARIANT((else_part!= NULL), "The else_part  cannot be null"); 	//TODO
-		Ast * selection_ast = new Selection_Statement_Ast(cond,then_part,else_part,get_line_number());
-		$$ = selection_ast;		
-	}
-	}	
-
-|
-	IF  '(' boolean_expression ')' matched_statement ELSE unmatched_statement 
+	IF  '(' boolean_expression ')' THEN statement ELSE statement  %prec THEN
 	{
 	if(NOT_ONLY_PARSE)		
 	{
 		Ast * cond = $3;
-		Ast * then_part = $5;
-		Ast * else_part = $7;
+		Ast * then_part = $6;
+		Ast * else_part = $8;
 		Ast * selection_ast = new Selection_Statement_Ast(cond,then_part,else_part,get_line_number());
 		$$ = selection_ast;		
 	}
 	}
 ;
+
 
 
 iterative_statement:
-	WHILE '(' boolean_expression ')' '{' statement_list '}'
+	WHILE '(' boolean_expression ')' statement
 	{
 	if(NOT_ONLY_PARSE)		
 	{
 		Ast * cond = $3;
-		Ast * body = $6;
+		Ast * body = $5;
 		Ast * iterative_ast = new Iteration_Statement_Ast(cond,body,get_line_number(),false);
 		$$ = iterative_ast;		
 	}
 	}
 
 |
-	DO '{' statement_list '}' WHILE '(' boolean_expression ')' 
+	DO statement WHILE '(' boolean_expression ')' ';'
 	{
 	if(NOT_ONLY_PARSE)		
 	{
-		Ast * cond = $7;
-		Ast * body = $3;
+		Ast * cond = $5;
+		Ast * body = $2;
 		Ast * iterative_ast = new Iteration_Statement_Ast(cond,body,get_line_number(),true);
 		$$ = iterative_ast;		
 	}
 	}
 ; 
 	
+
+// statement:
+// 	matched_statement 
+// 	{
+// 	if(NOT_ONLY_PARSE)
+// 	{
+// 		$$ = $1;
+// 	}
+// 	}
+// |
+// 	unmatched_statement
+// 	{
+// 	if(NOT_ONLY_PARSE)
+// 	{
+// 		// std::cout<<"unmatched statement"<<endl;
+// 		$$ = $1;
+// 	}
+// 	}
+// ;	
+
+// matched_statement:
+// 	IF  '(' boolean_expression ')' THEN matched_statement ELSE matched_statement %prec THEN
+// 	{
+// 	if(NOT_ONLY_PARSE)		
+// 	{
+// 		Ast * cond = $3;
+// 		Ast * then_part = $5;
+// 		Ast * else_part = $7;
+// 		CHECK_INVARIANT((then_part!= NULL), "The then_part  cannot be null"); 	//TODO
+// 		CHECK_INVARIANT((else_part!= NULL), "The else_part  cannot be null"); 	//TODO		
+// 		Ast * selection_ast = new Selection_Statement_Ast(cond,then_part,else_part,get_line_number());
+// 		$$ = selection_ast;		
+// 	}
+// 	}
+
+// |	
+// 	other_statement
+// 	{
+// 	if(NOT_ONLY_PARSE)
+// 	{
+// 		$$ =$1;
+// 	}
+// 	}
+// ;
+
+// unmatched_statement:
+// 	IF  '(' boolean_expression ')' THEN statement 	%prec THEN
+// 	{
+// 	if(NOT_ONLY_PARSE)		
+// 	{
+// 		// std::cout<<"in unmatched statement"<<endl;
+// 		Ast * cond = $3;
+// 		Ast * then_part = $5;
+// 		Ast * else_part = new Sequence_Ast(get_line_number()); 
+// 		CHECK_INVARIANT((then_part!= NULL), "The then_part  cannot be null"); 	//TODO
+// 		CHECK_INVARIANT((else_part!= NULL), "The else_part  cannot be null"); 	//TODO
+// 		Ast * selection_ast = new Selection_Statement_Ast(cond,then_part,else_part,get_line_number());
+// 		$$ = selection_ast;		
+// 	}
+// 	}	
+
+// |
+// 	IF  '(' boolean_expression ')' THEN matched_statement ELSE unmatched_statement  %prec THEN
+// 	{
+// 	if(NOT_ONLY_PARSE)		
+// 	{
+// 		Ast * cond = $3;
+// 		Ast * then_part = $5;
+// 		Ast * else_part = $7;
+// 		Ast * selection_ast = new Selection_Statement_Ast(cond,then_part,else_part,get_line_number());
+// 		$$ = selection_ast;		
+// 	}
+// 	}
+// ;
+
 
 boolean_expression:
 	boolean_expression OR boolean_expression 

@@ -1,0 +1,17 @@
+Program:
+   Procedure: main, Return Type: void
+
+      Sequence Ast:
+
+         IF : 
+         CONDITION (
+            Condition: GT
+               LHS (Name : a)
+               RHS (Num : 5))
+         THEN (
+         Asgn:
+            LHS (Name : a)
+            RHS (Num : 6))
+         ELSE (
+      Sequence Ast:
+)
