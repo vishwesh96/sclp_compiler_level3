@@ -26,9 +26,8 @@
 %token <integer_value> INTEGER_NUMBER
 %token <float_value> DOUBLE_NUMBER
 %token <string_value> NAME
-%token INTEGER FLOAT
-%token ASSIGN VOID
-%token IF ELSE 
+%token INTEGER FLOAT VOID
+%token IF ELSE ASSIGN
 %token WHILE DO 
 //%token RETURN
 
